@@ -3,105 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Mail bestätigt - UTA</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@900&family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <title>Supabase Auth</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Success State -->
-    <div class="container" id="successContainer">
-        <div class="icon">✓</div>
-        <h1>E-Mail bestätigt!</h1>
-        <p class="message">
-            Deine E-Mail-Adresse wurde erfolgreich bestätigt. Du kannst dich jetzt in der App anmelden.
-        </p>
-        <div class="button-container">
-            <a href="#" class="btn btn-primary" id="openAppBtn">
-                App öffnen
-            </a>
-            <a href="#" class="btn btn-secondary" id="downloadBtn">
-                App herunterladen // Coming soon
-            </a>
+    <div id="app">
+        <!-- Login Form (wird angezeigt wenn nicht angemeldet) -->
+        <div id="login-container" class="container">
+            <h1>Anmeldung</h1>
+            <form id="login-form">
+                <input type="email" id="email" placeholder="E-Mail" required>
+                <input type="password" id="password" placeholder="Passwort" required>
+                <button type="submit">Anmelden</button>
+            </form>
+            <p id="error-message" class="error"></p>
         </div>
-        <p class="loading" id="loadingText">
-            Öffne die App...
-        </p>
-    </div>
 
-    <!-- Error State -->
-    <div class="container hidden" id="errorContainer">
-        <div class="icon error">✗</div>
-        <h1>Fehler</h1>
-        <p class="message" id="errorMessage">
-            Beim Bestätigen deiner E-Mail ist ein Fehler aufgetreten. Bitte versuche es erneut.
-        </p>
-        <div class="button-container">
-            <a href="uta://login" class="btn btn-primary">
-                Zur App
-            </a>
-            <button class="btn btn-secondary" onclick="window.location.reload()">
-                Erneut versuchen
-            </button>
+        <!-- Angemeldet Anzeige (wird angezeigt wenn angemeldet) -->
+        <div id="logged-in-container" class="hidden">
+            <div class="header">
+                <h1 id="cards-management-heading">Cards Verwaltung</h1>
+                <div class="header-right">
+                    <div class="profile-picture-container">
+                        <img id="profile-picture" src="" alt="Profilbild" class="profile-picture" onclick="openProfileModal()">
+                        <input type="file" id="profile-picture-input" accept="image/*" style="display: none;" onchange="uploadProfilePicture(event)">
+                    </div>
+                    <button id="logout-btn">Abmelden</button>
+                </div>
+            </div>
+            
+            <div id="permission-message" class="hidden"></div>
+
+            <!-- Cards Grid -->
+            <div id="cards-grid" class="cards-grid">
+                <!-- Cards werden hier dynamisch eingefügt -->
+            </div>
         </div>
     </div>
 
-    <script>
-        // Parse URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get('status') || 'success';
-        const error = urlParams.get('error');
-
-        // Show appropriate container
-        const successContainer = document.getElementById('successContainer');
-        const errorContainer = document.getElementById('errorContainer');
-
-        if (status === 'error' || error) {
-            successContainer.classList.add('hidden');
-            errorContainer.classList.remove('hidden');
-            if (error) {
-                document.getElementById('errorMessage').textContent = decodeURIComponent(error);
-            }
-        } else {
-            successContainer.classList.remove('hidden');
-            errorContainer.classList.add('hidden');
-        }
-
-        // App opening logic
-        const openAppBtn = document.getElementById('openAppBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const loadingText = document.getElementById('loadingText');
-
-        // Check if we're on mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        if (isMobile && openAppBtn) {
-            openAppBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (loadingText) {
-                    loadingText.classList.add('active');
-                }
+    <!-- Profilbearbeitung Modal -->
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Profil bearbeiten</h2>
+                <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <form id="profile-form" onsubmit="saveProfile(event)">
+                <div class="form-group">
+                    <label for="profile-username">veranstaltername</label>
+                    <input type="text" id="profile-username" placeholder="veranstaltername" required>
+                </div>
                 
-                // Try to open the app
-                const appUrl = '#';
-                window.location.href = appUrl;
+                <div class="form-group">
+                    <label for="profile-picture-upload">Profilbild</label>
+                    <div class="image-upload-container">
+                        <img id="profile-preview" src="" alt="Profilbild Vorschau" class="image-preview" style="display: none;">
+                        <label class="image-upload-label">
+                            <input type="file" id="profile-picture-upload" accept="image/*" onchange="previewProfileImage(this)">
+                            <span class="image-upload-text">Profilbild auswählen</span>
+                        </label>
+                    </div>
+                </div>
                 
-                // If app doesn't open within 2 seconds, redirect to Play Store
-                setTimeout(function() {
-                    if (document.hasFocus()) {
-                        window.location.href = '#';	
-                    }
-                }, 2000);
-            });
-        } else if (openAppBtn) {
-            // On desktop, just redirect to Play Store
-            openAppBtn.href = '#';
-            openAppBtn.textContent = '//Coming soon// App herunterladen';
-            if (downloadBtn) {
-                downloadBtn.style.display = 'none';
-            }
-        }
-    </script>
+                <div class="form-group">
+                    <label for="placeholder-picture-upload">Placeholder-Bild (für Veranstaltungsbilder)</label>
+                    <div class="image-upload-container">
+                        <img id="placeholder-preview" src="" alt="Placeholder Vorschau" class="image-preview" style="display: none;">
+                        <label class="image-upload-label">
+                            <input type="file" id="placeholder-picture-upload" accept="image/*" onchange="previewPlaceholderImage(this)">
+                            <span class="image-upload-text">Placeholder-Bild auswählen</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">Speichern</button>
+                    <button type="button" class="btn-secondary" onclick="closeProfileModal()">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
 </body>
 </html>
